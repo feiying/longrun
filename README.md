@@ -1,2 +1,5 @@
-# longrun
-The tooltip is to longrun testing for laptop computer.
+笔记本压力测试脚本，提供如下测试功能：
+*）Hibernate
+*）Suspend
+*）Reboot
+*) Shutdown
