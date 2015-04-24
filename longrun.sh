@@ -102,13 +102,15 @@ function test_s3()
         then
             break
         fi
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] total: ${times_total} \n[INFO] cur: ${times_loop}"
         sleep $time_waiting
-        sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
+
         echo "# [INFO] ${test_func} #total:${times_total} #loop:${times_loop}" >> ${LONGRUN_LOG}
+        sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
         /sbin/rtcwake -s $timeout_running -m mem >> ${LONGRUN_LOG}
-        #/sbin/rtcwake -s $timeout_running -m mem -n >> ${LONGRUN_LOG}
     done 
     echo "# [INFO] ${test_func}test completely!" >> ${LONGRUN_LOG}
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
 }
 
 
@@ -122,20 +124,22 @@ function test_s4()
         then
             break
         fi
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] total: ${times_total} \n[INFO] cur: ${times_loop}"
         sleep $time_waiting
-        sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
+
         echo "# [INFO] ${test_func} #total:${times_total} #loop:${times_loop}" >> ${LONGRUN_LOG}
+        sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
         /sbin/rtcwake -s $timeout_running -m disk >> ${LONGRUN_LOG}
-        #/sbin/rtcwake -s $timeout_running -m disk  -n >> ${LONGRUN_LOG}
     done 
     echo "# [INFO] ${test_func}test completely!" >> ${LONGRUN_LOG}
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
 }
 
 
 # reboot mode 
 function test_reboot()
 {
-    if ! grep "AutomaticLoginEnable=true" ${AUTOLOGIN_CONF}
+    if ! grep "AutomaticLoginEnable=true" ${AUTOLOGIN_CONF} &>/dev/null
     then
         echo "# [INFO] create /etc/gdm/custom.conf" >> ${LONGRUN_LOG}
         auto_login 
@@ -152,13 +156,15 @@ function test_reboot()
     elif [ "$times_loop" -eq "$times_total" ]; then
         echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
         echo "# [INFO] Test completely!" >> ${LONGRUN_LOG}
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
         exit 0;
     fi
 
-    sleep $time_waiting
     times_loop=$(( $times_loop + 1 ))
-    sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] total: ${times_total} \n[INFO] cur: ${times_loop}"
+    sleep $time_waiting
     echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
+    sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
     sleep 2; /sbin/reboot -f &>/dev/null
 }
 
@@ -173,10 +179,11 @@ function test_shutdown()
 
         echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
         echo "# [INFO] Test success!" >> ${LONGRUN_LOG}
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
         exit 0;
     fi
 
-    if ! grep "AutomaticLoginEnable=true" ${AUTOLOGIN_CONF}
+    if ! grep "AutomaticLoginEnable=true" ${AUTOLOGIN_CONF} &>/dev/null
     then
         echo "# [INFO] create /etc/gdm/custom.conf" >> ${LONGRUN_LOG}
         auto_login 
@@ -196,8 +203,9 @@ function test_shutdown()
     #echo "##### dmesg start #####" >> ${LONGRUN_LOG}
     #/bin/dmesg >> ${LONGRUN_LOG}
     #echo "##### dmesg end #####" >> ${LONGRUN_LOG}
-    sleep $time_waiting
     times_loop=$(( $times_loop + 1 ))
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] total: ${times_total} \n[INFO] cur: ${times_loop}"
+    sleep $time_waiting
     echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
     sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
 
@@ -231,12 +239,12 @@ if [ -e ${LONGRUN_CONF} ];then
     test_func=`grep 'FUNC' ${LONGRUN_CONF} | sed -r 's/FUNC=//'`
     times_total=`grep 'TIMES_TOTAL' ${LONGRUN_CONF} | sed -r 's/TIMES_TOTAL=//'`
 else
-    echo "# [INFO] create dir \"${DIR_TMP_LONGRUN}\"" >> ${LONGRUN_LOG}
     mkdir -p ${DIR_TMP_LONGRUN} 
     if [ ! -e ${LONGRUN_LOG} ]; then
         touch ${LONGRUN_LOG}
         chmod 666 ${LONGRUN_LOG}
     fi
+    echo "# [INFO] create dir \"${DIR_TMP_LONGRUN}\"" >> ${LONGRUN_LOG}
 
     cat >> ${LONGRUN_CONF} << fileconf
 FUNC=
@@ -253,7 +261,7 @@ while true; do
     if !([ "$test_func" = "S3" ] || [ "$test_func" = "S4" ] || [ "$test_func" = "Reboot" ] || [ "$test_func" = "Shutdown" ]);    then
         echo "# [ERROR] Please confirm and re-input."
     else
-        echo "# [INFO] test_func:${test_func}"
+        echo "# [INFO] test_func:${test_func}" >> ${LONGRUN_LOG}
         sed -i "s/^FUNC=*$/FUNC=${test_func}/g" ${LONGRUN_CONF}
         break
     fi
