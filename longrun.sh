@@ -9,7 +9,7 @@ LONGRUN_LOG="${DIR_TMP_LONGRUN}/longrun.log"
 LONGRUN_CONF="${DIR_TMP_LONGRUN}/longrun.conf"
 AUTOLOGIN_CONF="/etc/gdm/custom.conf"
 AUTORUN_SCRIPT="/etc/rc.d/loopsettings.sh"
-time_waiting=60 # it's time which spend for waiting test.
+time_waiting=40 # it's time which spend for waiting test.
 timeout_running=20 # it's timeout clock for test.
 
 
@@ -48,6 +48,7 @@ WAKE_ALAEM="/sys/class/rtc/rtc0/wakealarm"
 chmod 666 \${WAKE_ALAEM}
 echo 0 > \${WAKE_ALAEM} ; 
 echo "# [INFO] \$0" >> /var/log/longsettings.log
+sleep 10
 `pwd`/longrun.sh --run
 Autorunfile
     chmod +x ${AUTORUN_SCRIPT}
@@ -95,7 +96,7 @@ Autologin
 # s3 mode 
 function test_s3()
 {
-    echo "# [INFO] $test_func total:$times_total" >> ${LONGRUN_LOG}
+    echo "# [INFO] $test_func total: $times_total" >> ${LONGRUN_LOG}
     while true; do
         times_loop=$(( $times_loop + 1 ))
         if [ $times_loop -gt $times_total ]
@@ -110,20 +111,22 @@ function test_s3()
         /sbin/rtcwake -s $timeout_running -m mem >> ${LONGRUN_LOG}
     done 
     echo "# [INFO] ${test_func}test completely!" >> ${LONGRUN_LOG}
-    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func} test completely!\n\nIf you want again, please running command  \" $0 --reset\" to clean old data ! "
 }
 
 
 # s4 mode 
 function test_s4()
 {
-    echo "# [INFO] $test_func total:$times_total" >> ${LONGRUN_LOG}
+    echo "# [INFO] $test_func total: $times_total" >> ${LONGRUN_LOG}
     while true; do
         times_loop=$(( $times_loop + 1 ))
         if [ $times_loop -gt $times_total ]
         then
+            echo "# [INFO] loop:${times_loop} is bigger than total:${times_total}" >> ${LONGRUN_LOG}
             break
         fi
+        echo "# [INFO] loop:${times_loop} is smaller than total:${times_total}" >> ${LONGRUN_LOG}
         notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] total: ${times_total} \n[INFO] cur: ${times_loop}"
         sleep $time_waiting
 
@@ -131,8 +134,8 @@ function test_s4()
         sed -i "s/^TIMES_LOOP=[0-9]*$/TIMES_LOOP=${times_loop}/g" ${LONGRUN_CONF} &>/dev/null
         /sbin/rtcwake -s $timeout_running -m disk >> ${LONGRUN_LOG}
     done 
-    echo "# [INFO] ${test_func}test completely!" >> ${LONGRUN_LOG}
-    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
+    echo "# [INFO] ${test_func}test completely! " >> ${LONGRUN_LOG}
+    notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func} test completely!\n\nIf you want again, please running command  \" $0 --reset\" to clean old data ! "
 }
 
 
@@ -152,11 +155,11 @@ function test_reboot()
 
     times_loop=`grep 'TIMES_LOOP' ${LONGRUN_CONF} | sed -r 's/TIMES_LOOP=//'`
     if [ "${times_loop}" -eq "0" ]; then
-        echo "# [INFO] ${test_func} total:${times_total}"  >> ${LONGRUN_LOG}
+        echo "# [INFO] ${test_func} total: ${times_total}"  >> ${LONGRUN_LOG}
     elif [ "$times_loop" -eq "$times_total" ]; then
         echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
         echo "# [INFO] Test completely!" >> ${LONGRUN_LOG}
-        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func} test completely!\n\nIf you want again, please running command  \" $0 --reset\" to clean old data ! "
         exit 0;
     fi
 
@@ -174,12 +177,12 @@ function test_shutdown()
 {
     times_loop=`grep 'TIMES_LOOP' ${LONGRUN_CONF} | sed -r 's/TIMES_LOOP=//'`
     if [ "${times_loop}" -eq "0" ]; then
-        echo "# [INFO] ${test_func} total:${times_total}"  >> ${LONGRUN_LOG}
+        echo "# [INFO] ${test_func} total: ${times_total}"  >> ${LONGRUN_LOG}
     elif [ "$times_loop" -eq "$times_total" ]; then
 
         echo "# [INFO] ${test_func} total:${times_total} loop:${times_loop}"  >> ${LONGRUN_LOG}
-        echo "# [INFO] Test success!" >> ${LONGRUN_LOG}
-        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func}test completely!"
+        echo "# [INFO] Test completely!" >> ${LONGRUN_LOG}
+        notify-send  -t `expr $time_waiting \* 1000` -a -u "Longrun: ${test_func}" "[INFO] ${test_func} test completely!\n\nIf you want again, please running command  \" $0 --reset\" to clean old data ! "
         exit 0;
     fi
 
@@ -238,6 +241,7 @@ fi
 if [ -e ${LONGRUN_CONF} ];then
     test_func=`grep 'FUNC' ${LONGRUN_CONF} | sed -r 's/FUNC=//'`
     times_total=`grep 'TIMES_TOTAL' ${LONGRUN_CONF} | sed -r 's/TIMES_TOTAL=//'`
+    times_loop=`grep 'TIMES_LOOP' ${LONGRUN_CONF} | sed -r 's/TIMES_LOOP=//'`
 else
     mkdir -p ${DIR_TMP_LONGRUN} 
     if [ ! -e ${LONGRUN_LOG} ]; then
@@ -286,7 +290,7 @@ then
     test_s3
 elif [ "$test_func" = "S4" ]
 then
-    test_s4
+    test_s4 
 elif [ "$test_func" = "Reboot" ]
 then
     test_reboot
